@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"code.google.com/p/go.crypto/ssh"
 	"code.google.com/p/goconf/conf"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 )
@@ -13,6 +15,7 @@ var (
 	user,
 	pass,
 	hostname,
+	ssh_path,
 	repository,
 	path,
 	releases,
@@ -32,6 +35,7 @@ func init() {
 	}
 
 	user, err = c.GetString("", "username")
+	ssh_path, err = c.GetString("", "ssh")
 	pass, err = c.GetString("", "password")
 	hostname, err = c.GetString("", "hostname")
 	repository, err = c.GetString("", "repository")
@@ -55,19 +59,60 @@ type deploy struct {
 
 //returns a new deployment
 func newDeploy() (d *deploy, err error) {
-	cfg := &ssh.ClientConfig{
-		User: user,
-		Auth: []ssh.AuthMethod{
-			ssh.Password(pass),
-		},
+	if pass != "" {
+		cfg := &ssh.ClientConfig{
+			User: user,
+			Auth: []ssh.AuthMethod{
+				ssh.Password(pass),
+			},
+		}
+		fmt.Println("SSH-ing into " + hostname)
+		cl, err := ssh.Dial("tcp", hostname+":22", cfg)
+		if err != nil {
+			return nil, err
+		}
+		d = &deploy{cl: cl}
+	}
+	if ssh_path != "" {
+		sshConfig := &ssh.ClientConfig{
+			User: user,
+			Auth: []ssh.AuthMethod{
+				PublicKeyFile(ssh_path),
+			},
+		}
+		fmt.Println("SSH-ing into " + hostname)
+		cl, err := ssh.Dial("tcp", hostname+":22", sshConfig)
+		if err != nil {
+			return nil, err
+		}
+		session, err := cl.NewSession()
+		if err != nil {
+			panic("Failed to create session: " + err.Error())
+		}
+		var b bytes.Buffer
+		session.Stdout = &b
+		if err := session.Run("/usr/bin/whoami"); err != nil {
+			panic("Failed to run: " + err.Error())
+		}
+		fmt.Println(b.String())
+		defer session.Close()
+		d = &deploy{cl: cl}
 	}
 
-	fmt.Println("SSH-ing into " + hostname)
-	cl, err := ssh.Dial("tcp", hostname+":22", cfg)
-
-	d = &deploy{cl: cl}
-
 	return
+}
+
+func PublicKeyFile(file string) ssh.AuthMethod {
+	buffer, err := ioutil.ReadFile(file)
+	if err != nil {
+		return nil
+	}
+
+	key, err := ssh.ParsePrivateKey(buffer)
+	if err != nil {
+		return nil
+	}
+	return ssh.PublicKeys(key)
 }
 
 // runs the deployment script remotely
