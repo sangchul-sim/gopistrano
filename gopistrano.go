@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"code.google.com/p/go.crypto/ssh"
 	"code.google.com/p/goconf/conf"
 	"flag"
@@ -85,17 +84,6 @@ func newDeploy() (d *deploy, err error) {
 		if err != nil {
 			return nil, err
 		}
-		session, err := cl.NewSession()
-		if err != nil {
-			panic("Failed to create session: " + err.Error())
-		}
-		var b bytes.Buffer
-		session.Stdout = &b
-		if err := session.Run("/usr/bin/whoami"); err != nil {
-			panic("Failed to run: " + err.Error())
-		}
-		fmt.Println(b.String())
-		defer session.Close()
 		d = &deploy{cl: cl}
 	}
 
