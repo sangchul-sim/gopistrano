@@ -16,6 +16,7 @@ var (
 	hostname,
 	ssh_path,
 	repository,
+	appname,
 	path,
 	releases,
 	shared,
@@ -37,6 +38,7 @@ func init() {
 	ssh_path, err = c.GetString("", "ssh")
 	pass, err = c.GetString("", "password")
 	hostname, err = c.GetString("", "hostname")
+	appname, err = c.GetString("", "appname")
 	repository, err = c.GetString("", "repository")
 	path, err = c.GetString("", "path")
 	releases = path + "/releases"
@@ -122,7 +124,7 @@ func (d *deploy) Run() error {
 // sets up directories for deployment a la capistrano
 func (d *deploy) Setup() error {
 
-	cdPathCmd := "if [ ! -d " + releases + " ]; then mkdir " + releases + "; fi &&" +
+	cdPathCmd := "if [ ! -d " + releases + " ]; then mkdir -p " + releases + "; fi &&" +
 		"if [ ! -d " + shared + " ]; then mkdir " + shared + "; fi &&" +
 		"if [ ! -d " + utils + " ]; then mkdir " + utils + "; fi &&" +
 		"chmod g+w " + releases + " " + shared + " " + path + " " + utils
