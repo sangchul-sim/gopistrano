@@ -30,6 +30,7 @@ repository = https://github.com/alanchavez88/theHarvester.git
 keep_releases = 5
 path = /home7/alanchav/gopistrano
 use_sudo = false
+ssh = sshkey_path
 webserver_user = nobody
 
 ```

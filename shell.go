@@ -7,6 +7,7 @@ var deployment_script string = `#!/bin/bash
 DEPLOYMENT_PATH=$1
 REPOSITORY=$2
 KEEP_RELEASES=$3
+APPNAME=$4
 # variable init
 CUR_TIMESTAMP="$(date +'%Y%m%d%H%M%S')"
 
@@ -29,4 +30,16 @@ chmod -R g+w "$DEPLOYMENT_PATH/releases/$CUR_TIMESTAMP"
 
 rm -f "$DEPLOYMENT_PATH/current" &&  ln -s "$DEPLOYMENT_PATH/releases/$CUR_TIMESTAMP" "$DEPLOYMENT_PATH/current"
 ls -1dt "$DEPLOYMENT_PATH/releases" | tail -n +$KEEP_RELEASES |  xargs rm -rf
+`
+
+var run_script string = `#!/bin/bash
+# comment line below if you want quiet output
+#set -x 
+DEPLOYMENT_PATH=$1
+# variable init
+SNAME=api
+# restart
+tmux kill-session -t $SNAME
+tmux new-session -d -s $SNAME "cd $DEPLOYMENT_PATH/current/earshot/api && ./api"
+tmux detach -s $SNAME
 `

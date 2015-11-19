@@ -35,10 +35,10 @@ func init() {
 	}
 
 	user, err = c.GetString("", "username")
+	appname, err = c.GetString("", "appname")
 	ssh_path, err = c.GetString("", "ssh")
 	pass, err = c.GetString("", "password")
 	hostname, err = c.GetString("", "hostname")
-	appname, err = c.GetString("", "appname")
 	repository, err = c.GetString("", "repository")
 	path, err = c.GetString("", "path")
 	releases = path + "/releases"
@@ -46,8 +46,9 @@ func init() {
 	utils = path + "/utils"
 
 	keep_releases, err = c.GetString("", "keep_releases")
-
 	//just log whichever we get; let the user re-run the program to see all errors... for now
+	fmt.Println("---------Starting----------")
+	fmt.Println(appname)
 	if err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)
@@ -111,13 +112,26 @@ func (d *deploy) Run() error {
 		"if [ ! -d " + shared + " ]; then exit 1; fi &&" +
 		"if [ ! -d " + utils + " ]; then exit 1; fi &&" +
 		"if [ ! -f " + utils + "/deploy.sh ]; then exit 1; fi &&" +
-		"" + utils + "/deploy.sh " + path + " " + repository + " " + keep_releases
+		"" + utils + "/deploy.sh " + path + " " + repository + " " + keep_releases + " " + appname
 
 	if err := d.runCmd(deployCmd); err != nil {
 		return err
 	}
 
 	fmt.Println("Project Deployed!")
+	fmt.Println("Restarting Tmux at " + path)
+
+	restartCMD := "if [ ! -d " + releases + " ]; then exit 1; fi &&" +
+		"if [ ! -d " + shared + " ]; then exit 1; fi &&" +
+		"if [ ! -d " + utils + " ]; then exit 1; fi &&" +
+		"if [ ! -f " + utils + "/run_app.sh ]; then exit 1; fi &&" +
+		"" + utils + "/run_app.sh " + path
+
+	if err := d.runCmd(restartCMD); err != nil {
+		return err
+	}
+
+	fmt.Println("Tmux Restarted!")
 	return nil
 }
 
@@ -136,8 +150,12 @@ func (d *deploy) Setup() error {
 	fmt.Println("running scp connection")
 
 	cpy := `echo -n '` + string(deployment_script) + `' > ` + utils + `/deploy.sh ; chmod +x ` + utils + `/deploy.sh`
+	cpi := `echo -n '` + string(run_script) + `' > ` + utils + `/run_app.sh ; chmod +x ` + utils + `/run_app.sh`
 
 	if err := d.runCmd(cpy); err != nil {
+		return err
+	}
+	if err := d.runCmd(cpi); err != nil {
 		return err
 	}
 
