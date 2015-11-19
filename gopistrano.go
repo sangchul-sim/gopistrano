@@ -125,7 +125,7 @@ func (d *deploy) Run() error {
 		"if [ ! -d " + shared + " ]; then exit 1; fi &&" +
 		"if [ ! -d " + utils + " ]; then exit 1; fi &&" +
 		"if [ ! -f " + utils + "/run_app.sh ]; then exit 1; fi &&" +
-		"" + utils + "/run_app.sh " + path
+		"" + utils + "/run_app.sh " + path + " " + appname
 
 	if err := d.runCmd(restartCMD); err != nil {
 		return err
@@ -150,7 +150,7 @@ func (d *deploy) Setup() error {
 	fmt.Println("running scp connection")
 
 	cpy := `echo -n '` + string(deployment_script) + `' > ` + utils + `/deploy.sh ; chmod +x ` + utils + `/deploy.sh`
-	cpi := `echo -n '` + string(run_script) + `' > ` + utils + `/run_app.sh ; chmod +x ` + utils + `/run_app.sh`
+	cpi := `echo -n '` + string(run_script) + `' > ` + utils + `/run_app.sh ; chmod +x ` + utils + `/run_app.sh` 
 
 	if err := d.runCmd(cpy); err != nil {
 		return err

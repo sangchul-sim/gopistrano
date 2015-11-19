@@ -36,10 +36,11 @@ var run_script string = `#!/bin/bash
 # comment line below if you want quiet output
 #set -x 
 DEPLOYMENT_PATH=$1
+APPNAME=$2
 # variable init
 SNAME=api
 # restart
 tmux kill-session -t $SNAME
-tmux new-session -d -s $SNAME "cd $DEPLOYMENT_PATH/current/earshot/api && ./api"
+tmux new-session -d -s $SNAME "cd $DEPLOYMENT_PATH/$APPNAME && ./$APPNAME"
 tmux detach -s $SNAME
 `
