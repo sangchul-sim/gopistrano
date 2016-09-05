@@ -1,10 +1,12 @@
 package main
 
 import (
-	"code.google.com/p/go.crypto/ssh"
-	"code.google.com/p/goconf/conf"
+	//	"code.google.com/p/go.crypto/ssh"
+	//	"code.google.com/p/goconf/conf"
 	"flag"
 	"fmt"
+	"github.com/alanchavez88/goconf"
+	"golang.org/x/crypto/ssh"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -150,7 +152,7 @@ func (d *deploy) Setup() error {
 	fmt.Println("running scp connection")
 
 	cpy := `echo -n '` + string(deployment_script) + `' > ` + utils + `/deploy.sh ; chmod +x ` + utils + `/deploy.sh`
-	cpi := `echo -n '` + string(run_script) + `' > ` + utils + `/run_app.sh ; chmod +x ` + utils + `/run_app.sh` 
+	cpi := `echo -n '` + string(run_script) + `' > ` + utils + `/run_app.sh ; chmod +x ` + utils + `/run_app.sh`
 
 	if err := d.runCmd(cpy); err != nil {
 		return err
