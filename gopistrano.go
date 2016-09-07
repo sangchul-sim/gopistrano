@@ -1,9 +1,6 @@
 package main
 
 import (
-	//	"code.google.com/p/go.crypto/ssh"
-	//	"code.google.com/p/goconf/conf"
-
 	"flag"
 	"fmt"
 	"log"
@@ -11,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	// "github.com/alanchavez88/goconf"
 )
 
 var (
@@ -54,7 +50,6 @@ type deployInfo struct {
 }
 
 func ReadConfig(configfile string) (*Config, error) {
-	// var configfile = flags.Configfile
 	_, err := os.Stat(configfile)
 	if err != nil {
 		log.Fatal("Config file is missing: ", configfile)
@@ -66,7 +61,6 @@ func ReadConfig(configfile string) (*Config, error) {
 
 		return config, err
 	}
-	//log.Print(config.Index)
 	return config, nil
 }
 
@@ -93,18 +87,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	//fmt.Println("deployAction", *deployAction)
-	//fmt.Println("serverEnv", *serverEnv)
-	//fmt.Println("User", deployConfig.Login.User)
-	//fmt.Println("Pwd", deployConfig.Login.Pwd)
-	//fmt.Println("SShPath", deployConfig.Login.SShPath)
-	//fmt.Println("Servers development", deployConfig.Servers["development"])
-	//fmt.Println("Servers development IP", deployConfig.Servers["development"].Ip)
-	//
-	//fmt.Println("typeof development", reflect.TypeOf(deployConfig.Servers["development"]))
-	//fmt.Println("Deploy", deployConfig.Deploy)
-	//fmt.Println("err", err)
-
 	remotePath.deployment = deployConfig.Deploy.GoProjectPath + "/src/" + deployConfig.Deploy.Package
 	remotePath.release = remotePath.deployment + "/releases"
 	remotePath.shared = remotePath.deployment + "/shared"
@@ -114,7 +96,6 @@ func main() {
 
 	for _, ip := range deployConfig.Servers[*serverEnv].Ip {
 		deploy, err := newDeploy(ip, deployConfig.Servers[*serverEnv].Port, deployConfig.Login.SShPath)
-		// Do panic if the dial fails
 		if err != nil {
 			fmt.Println("Failed to start: " + err.Error())
 			return

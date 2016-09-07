@@ -34,23 +34,15 @@ ls -1dt "$DEPLOYMENT_PATH/releases" | tail -n +$KEEP_RELEASES |  xargs rm -rf
 
 var runScript string = `#!/usr/bin/perl
 
-my $GO_PROJECT_PATH = $ARGV[0];
-my $PACKAGE = $ARGV[1];
-my $APP = $ARGV[2];
+my $go_project_path = $ARGV[0];
+my $package = $ARGV[1];
+my $app = $ARGV[2];
+my $go = $go_project_path . "/usr/local/go/bin/go";
 my @cmd;
 
-my $bee = $GO_PROJECT_PATH . "/bin/bee";
-
-push @cmd, "/usr/bin/tmux kill-session -t $APP";
-
-# OK
-push @cmd, "/usr/bin/tmux new-session -d -s $APP \"export GOPATH=$GO_PROJECT_PATH && export PATH=$GO_PROJECT_PATH/bin && cd $GO_PROJECT_PATH/src/$PACKAGE && /usr/local/go/bin/go install $PACKAGE && $GO_PROJECT_PATH/bin/$APP\"";
-#
-#push @cmd, "/usr/bin/tmux new-session -d -s $APP \"export GOPATH=/home/namu/go_project && export PATH=\$PATH:\$GOPATH/bin && cd $GO_PROJECT_PATH/src/$PACKAGE && $GO_PROJECT_PATH/bin/bee run $PACKAGE\"";
-
-#push @cmd, "export GOPATH=/home/namu/go_project && export PATH=/home/namu/go_project/bin && cd $GO_PROJECT_PATH/src/$PACKAGE && echo $GO_PROJECT_PATH/src/$PACKAGE > result.txt && /usr/local/go/bin/go install $PACKAGE >> /tmp/build.txt && $GO_PROJECT_PATH/bin/$APP";
-#push @cmd, "sleep 2";
-#push @cmd, "/usr/bin/tmux detach -s $APP";
+push @cmd, "/usr/bin/tmux kill-session -t $app";
+push @cmd, "/usr/bin/tmux new-session -d -s $app \"export GOPATH=$go_project_path && export PATH=$go_project_path/bin && cd $go_project_path/src/$package && /usr/local/go/bin/go install $package && $go_project_path/bin/$app\"";
+push @cmd, "/usr/bin/tmux detach -s $app";
 
 foreach $idx ( 0..$#cmd ){
     print "===========================================\n$cmd[$idx]\n";
