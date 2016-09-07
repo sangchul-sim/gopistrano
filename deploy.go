@@ -5,8 +5,9 @@ import (
 	"io/ioutil"
 	"os"
 
-	"golang.org/x/crypto/ssh"
 	"strconv"
+
+	"golang.org/x/crypto/ssh"
 )
 
 type deploy struct {
@@ -23,7 +24,7 @@ func newDeploy(Hostname string, Port int, SshPath string) (d *deploy, err error)
 				ssh.Password(deployConfig.Login.Pwd),
 			},
 		}
-		fmt.Println("SSH-ing into " + Hostname+":"+strconv.Itoa(Port))
+		fmt.Println("SSH-ing into " + Hostname + ":" + strconv.Itoa(Port))
 		cl, err := ssh.Dial("tcp", Hostname+":"+strconv.Itoa(Port), cfg)
 		if err != nil {
 			return nil, err
@@ -37,7 +38,7 @@ func newDeploy(Hostname string, Port int, SshPath string) (d *deploy, err error)
 				PublicKeyFile(SshPath),
 			},
 		}
-		fmt.Println("SSH-ing into " + Hostname+":"+strconv.Itoa(Port))
+		fmt.Println("SSH-ing into " + Hostname + ":" + strconv.Itoa(Port))
 		cl, err := ssh.Dial("tcp", Hostname+":"+strconv.Itoa(Port), sshConfig)
 		if err != nil {
 			return nil, err
@@ -67,13 +68,16 @@ func (d *deploy) Run() error {
 	deployCmd := "if [ ! -d " + remotePath.release + " ]; then exit 1; fi &&" +
 		"if [ ! -d " + remotePath.shared + " ]; then exit 1; fi &&" +
 		"if [ ! -d " + remotePath.utils + " ]; then exit 1; fi &&" +
-		"if [ ! -f " + remotePath.utils + "/deploy.sh ]; then exit 1; fi &&" +
-		"" + remotePath.utils + "/deploy.sh " + remotePath.deployment + " " + deployConfig.Deploy.Repository + " " + string(deployConfig.Deploy.KeepRelease) + " " + deployConfig.Deploy.App
+		"if [ ! -f " + remotePath.utils + "/deploy.pl ]; then exit 1; fi &&" +
+		"" + remotePath.utils + "/deploy.pl " + deployConfig.Deploy.GoProjectPath + " " + deployConfig.Deploy.Package +
+		" " + deployConfig.Deploy.App + " " + deployConfig.Deploy.Repository + " " +
+		string(deployConfig.Deploy.KeepRelease) + " " + deployConfig.Deploy.App
 
 	if err := d.runCmd(deployCmd); err != nil {
 		return err
 	}
 
+	fmt.Println("deployCmd", deployCmd)
 	fmt.Println("Project Deployed!")
 	fmt.Println("Restarting Tmux at " + remotePath.deployment)
 
@@ -81,7 +85,8 @@ func (d *deploy) Run() error {
 		"if [ ! -d " + remotePath.shared + " ]; then exit 1; fi &&" +
 		"if [ ! -d " + remotePath.utils + " ]; then exit 1; fi &&" +
 		"if [ ! -f " + remotePath.utils + "/run_app.pl ]; then exit 1; fi &&" +
-		" " + remotePath.utils + "/run_app.pl " + deployConfig.Deploy.GoProjectPath + " " + deployConfig.Deploy.Package + " " + deployConfig.Deploy.App
+		" " + remotePath.utils + "/run_app.pl " + deployConfig.Deploy.GoProjectPath + " " +
+		deployConfig.Deploy.Package + " " + deployConfig.Deploy.App
 
 	fmt.Println("restartCMD", restartCmdD)
 	if err := d.runCmd(restartCmdD); err != nil {
@@ -105,7 +110,7 @@ func (d *deploy) Setup() error {
 
 	fmt.Println("running scp connection")
 
-	cpy := `echo -n '` + string(deploymentScript) + `' > ` + remotePath.utils + `/deploy.sh ; chmod +x ` + remotePath.utils + `/deploy.sh`
+	cpy := `echo -n '` + string(deploymentScript) + `' > ` + remotePath.utils + `/deploy.pl ; chmod +x ` + remotePath.utils + `/deploy.pl`
 	cpi := `echo -n '` + string(runScript) + `' > ` + remotePath.utils + `/run_app.pl ; chmod +x ` + remotePath.utils + `/run_app.pl`
 
 	if err := d.runCmd(cpy); err != nil {

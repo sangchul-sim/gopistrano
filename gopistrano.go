@@ -92,8 +92,6 @@ func main() {
 	remotePath.shared = remotePath.deployment + "/shared"
 	remotePath.utils = remotePath.deployment + "/utils"
 
-	fmt.Println("remotePath", remotePath)
-
 	for _, ip := range deployConfig.Servers[*serverEnv].Ip {
 		deploy, err := newDeploy(ip, deployConfig.Servers[*serverEnv].Port, deployConfig.Login.SShPath)
 		if err != nil {
