@@ -13,13 +13,13 @@ import (
 var (
 	deployConfig *Config
 	remotePath   Path
+	c            chan string
 )
 
 type Path struct {
 	deployment string
-	shared     string
+	backup     string
 	utils      string
-	release    string
 }
 
 type Config struct {
@@ -36,7 +36,7 @@ type loginInfo struct {
 
 type serverInfo struct {
 	Ip   []string
-	Port int
+	Port string
 }
 
 type deployInfo struct {
@@ -44,7 +44,7 @@ type deployInfo struct {
 	GoProjectPath string `toml:"go_project_path"`
 	Package       string `toml:"package_name"`
 	App           string `toml:"app_name"`
-	KeepRelease   int    `toml:"keep_releases"`
+	KeepRelease   string `toml:"keep_releases"`
 	UseSudo       bool   `toml:"use_sudo"`
 	WebUser       string `toml:"webserver_user"`
 }
@@ -64,10 +64,9 @@ func ReadConfig(configfile string) (*Config, error) {
 	return config, nil
 }
 
-func init() {
-}
-
 func main() {
+	c = make(chan string, 2)
+
 	configFile := flag.String("config", "", "")
 	deployAction := flag.String("action", "", "")
 	serverEnv := flag.String("env", "", "")
@@ -88,12 +87,24 @@ func main() {
 	}
 
 	remotePath.deployment = deployConfig.Deploy.GoProjectPath + "/src/" + deployConfig.Deploy.Package
-	remotePath.release = remotePath.deployment + "/releases"
-	remotePath.shared = remotePath.deployment + "/shared"
-	remotePath.utils = remotePath.deployment + "/utils"
+	remotePath.backup = "/home/" + deployConfig.Login.User + "/backup"
+	remotePath.utils = "/home/" + deployConfig.Login.User + "/utils"
 
-	for _, ip := range deployConfig.Servers[*serverEnv].Ip {
-		deploy, err := newDeploy(ip, deployConfig.Servers[*serverEnv].Port, deployConfig.Login.SShPath)
+	go func() {
+		for _, ip := range deployConfig.Servers[*serverEnv].Ip {
+			c <- ip
+		}
+		close(c)
+	}()
+
+	for ip := range c {
+		deploy, err := newDeploy(
+			deployConfig.Login.User,
+			deployConfig.Login.Pwd,
+			ip,
+			deployConfig.Servers[*serverEnv].Port,
+			deployConfig.Login.SShPath,
+		)
 		if err != nil {
 			fmt.Println("Failed to start: " + err.Error())
 			return
@@ -112,4 +123,5 @@ func main() {
 			fmt.Println(err.Error())
 		}
 	}
+
 }
