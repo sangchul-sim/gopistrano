@@ -9,11 +9,12 @@ import (
 )
 
 type deploy struct {
-	cl *ssh.Client
+	cl     *ssh.Client
+	action string
 }
 
 //returns a new deployment
-func newDeploy(User string, Pwd string, Hostname string, Port string, SshPath string) (d *deploy, err error) {
+func newDeploy(User string, Pwd string, Hostname string, Port string, SshPath string, DeployAction string) (d *deploy, err error) {
 	if deployConfig.Login.Pwd != "" {
 		cfg := &ssh.ClientConfig{
 			User: User,
@@ -26,7 +27,10 @@ func newDeploy(User string, Pwd string, Hostname string, Port string, SshPath st
 		if err != nil {
 			return nil, err
 		}
-		d = &deploy{cl: cl}
+		d = &deploy{
+			cl:     cl,
+			action: DeployAction,
+		}
 	}
 	if SshPath != "" {
 		sshConfig := &ssh.ClientConfig{
@@ -40,7 +44,10 @@ func newDeploy(User string, Pwd string, Hostname string, Port string, SshPath st
 		if err != nil {
 			return nil, err
 		}
-		d = &deploy{cl: cl}
+		d = &deploy{
+			cl:     cl,
+			action: DeployAction,
+		}
 	}
 
 	return
@@ -131,4 +138,8 @@ func (d *deploy) runCmd(cmd string) (err error) {
 	session.Stderr = os.Stderr
 
 	return session.Run(cmd)
+}
+
+func (d *deploy) Action() string {
+	return d.action
 }

@@ -13,7 +13,7 @@ import (
 var (
 	deployConfig *Config
 	remotePath   Path
-	c            chan string
+	deployCh     chan *deploy
 )
 
 type Path struct {
@@ -64,9 +64,31 @@ func ReadConfig(configfile string) (*Config, error) {
 	return config, nil
 }
 
-func main() {
-	c = make(chan string, 2)
+func init() {
+	deployCh = make(chan *deploy, 100)
 
+	//go func() {
+	//	var err error
+	//
+	//	for {
+	//		dp := <-deployCh
+	//		switch strings.ToLower(dp.Action()) {
+	//		case "setup":
+	//			err = dp.Setup()
+	//		case "deploy":
+	//			err = dp.Run()
+	//		default:
+	//			fmt.Println("Invalid command!")
+	//		}
+	//
+	//		if err != nil {
+	//			fmt.Println(err.Error())
+	//		}
+	//	}
+	//}()
+}
+
+func main() {
 	configFile := flag.String("config", "", "")
 	deployAction := flag.String("action", "", "")
 	serverEnv := flag.String("env", "", "")
@@ -92,29 +114,31 @@ func main() {
 
 	go func() {
 		for _, ip := range deployConfig.Servers[*serverEnv].Ip {
-			c <- ip
+			deploy, err := newDeploy(
+				deployConfig.Login.User,
+				deployConfig.Login.Pwd,
+				ip,
+				deployConfig.Servers[*serverEnv].Port,
+				deployConfig.Login.SShPath,
+				*deployAction,
+			)
+
+			if err != nil {
+				fmt.Println("Failed to start: " + err.Error())
+				return
+			}
+
+			deployCh <- deploy
 		}
-		close(c)
+		close(deployCh)
 	}()
 
-	for ip := range c {
-		deploy, err := newDeploy(
-			deployConfig.Login.User,
-			deployConfig.Login.Pwd,
-			ip,
-			deployConfig.Servers[*serverEnv].Port,
-			deployConfig.Login.SShPath,
-		)
-		if err != nil {
-			fmt.Println("Failed to start: " + err.Error())
-			return
-		}
-
-		switch strings.ToLower(*deployAction) {
+	for ch := range deployCh {
+		switch strings.ToLower(ch.Action()) {
 		case "setup":
-			err = deploy.Setup()
+			err = ch.Setup()
 		case "deploy":
-			err = deploy.Run()
+			err = ch.Run()
 		default:
 			fmt.Println("Invalid command!")
 		}
@@ -123,5 +147,4 @@ func main() {
 			fmt.Println(err.Error())
 		}
 	}
-
 }

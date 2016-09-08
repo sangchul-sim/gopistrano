@@ -13,6 +13,8 @@ my $GoProjectSourceDir = $GoProjectDir . "/src";
 my $DeploymentDir = $GoProjectSourceDir . "/" . $Package;
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
 my $CurrentTime = sprintf ("%04d%02d%02d%02d%02d%02d", $year+1900,$mon+1,$mday,$hour,$min,$sec);
+
+print "deploymentScript current time:" . $CurrentTime . "\n";
 my @cmd;
 
 my $UtilDir = "/home/" . $User . "/utils";
@@ -110,6 +112,10 @@ my $App = $ARGV[2];
 my $Go = "/usr/local/go/bin/go";
 my $DeploymentDir = $GoProjectDir . "/src/" . $Package;
 my @cmd;
+
+my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
+my $CurrentTime = sprintf ("%04d%02d%02d%02d%02d%02d", $year+1900,$mon+1,$mday,$hour,$min,$sec);
+print "runScript current time:" . $CurrentTime . "\n";
 
 push @cmd, "/usr/bin/tmux kill-session -t $App";
 push @cmd, "/usr/bin/tmux new-session -d -s $App \"export GOPATH=$GoProjectDir && "
