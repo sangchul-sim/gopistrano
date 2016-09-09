@@ -29,10 +29,10 @@ if (! -d $DeploymentDir) {
         exit;
     }
 
-	push @cmd, "export PATH=\$PATH:/usr/local/go/bin/ && "
+    push @cmd, "export PATH=\$PATH:/usr/local/go/bin/ && "
                 . "export GOPATH=\$HOME/go_project && "
                 . "export PATH=\$PATH:\$GOPATH/bin && "
-	            . "cd " . $GoProjectDir. " && "
+                . "cd " . $GoProjectDir. " && "
                 . "go get github.com/astaxie/beego && "
                 . "go get github.com/beego/bee && "
                 . "go get " . $Package;
