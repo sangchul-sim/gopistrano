@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 
+	"runtime"
+
 	"github.com/BurntSushi/toml"
 )
 
@@ -65,30 +67,15 @@ func ReadConfig(configfile string) (*Config, error) {
 }
 
 func init() {
-	deployCh = make(chan *deploy, 100)
-
-	//go func() {
-	//	var err error
-	//
-	//	for {
-	//		dp := <-deployCh
-	//		switch strings.ToLower(dp.Action()) {
-	//		case "setup":
-	//			err = dp.Setup()
-	//		case "deploy":
-	//			err = dp.Run()
-	//		default:
-	//			fmt.Println("Invalid command!")
-	//		}
-	//
-	//		if err != nil {
-	//			fmt.Println(err.Error())
-	//		}
-	//	}
-	//}()
+	deployCh = make(chan *deploy)
 }
 
 func main() {
+	// 모든 CPU 사용
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	// 현재 설정값 리턴
+	fmt.Println(runtime.GOMAXPROCS(0))
+
 	configFile := flag.String("config", "", "")
 	deployAction := flag.String("action", "", "")
 	serverEnv := flag.String("env", "", "")

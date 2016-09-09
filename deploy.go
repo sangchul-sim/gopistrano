@@ -67,7 +67,7 @@ func PublicKeyFile(file string) ssh.AuthMethod {
 	return ssh.PublicKeys(key)
 }
 
-// runs the deployment script remotely
+// runs the deployment script && runs the restart script remotely
 func (d *deploy) Run() error {
 	deployCmd := "if [ ! -d " + deployConfig.Deploy.GoProjectPath + " ]; then mkdir " + deployConfig.Deploy.GoProjectPath + "; fi && " +
 		"if [ ! -d " + remotePath.utils + " ]; then exit 1; fi && " +
@@ -83,13 +83,13 @@ func (d *deploy) Run() error {
 	fmt.Println("Project Deployed!")
 	fmt.Println("Restarting Tmux at " + remotePath.deployment)
 
-	restartCmdD := "if [ ! -d " + remotePath.utils + " ]; then exit 1; fi && " +
+	restartCmd := "if [ ! -d " + remotePath.utils + " ]; then exit 1; fi && " +
 		"if [ ! -f " + remotePath.utils + "/run_app.pl ]; then exit 1; fi && " +
 		remotePath.utils + "/run_app.pl " + deployConfig.Deploy.GoProjectPath + " " +
 		deployConfig.Deploy.Package + " " + deployConfig.Deploy.App
 
-	//fmt.Println("restartCMD", restartCmdD)
-	if err := d.runCmd(restartCmdD); err != nil {
+	//fmt.Println("restartCMD", restartCmd)
+	if err := d.runCmd(restartCmd); err != nil {
 		return err
 	}
 
@@ -98,6 +98,7 @@ func (d *deploy) Run() error {
 }
 
 // sets up directories for deployment a la capistrano
+// copy deploy.pl and run_app.pl to utils directory
 func (d *deploy) Setup() error {
 	cdPathCmd := "if [ ! -d " + remotePath.backup + " ]; then mkdir " + remotePath.backup + "; fi &&" +
 		"if [ ! -d " + remotePath.utils + " ]; then mkdir " + remotePath.utils + "; fi"
@@ -108,13 +109,13 @@ func (d *deploy) Setup() error {
 
 	fmt.Println("running scp connection")
 
-	cpy := `echo -n '` + string(deploymentScript) + `' > ` + remotePath.utils + `/deploy.pl ; chmod +x ` + remotePath.utils + `/deploy.pl`
-	cpi := `echo -n '` + string(runScript) + `' > ` + remotePath.utils + `/run_app.pl ; chmod +x ` + remotePath.utils + `/run_app.pl`
+	copyDeploymentScript := `echo -n '` + string(deploymentScript) + `' > ` + remotePath.utils + `/deploy.pl ; chmod +x ` + remotePath.utils + `/deploy.pl`
+	copyRestartScript := `echo -n '` + string(restartScript) + `' > ` + remotePath.utils + `/run_app.pl ; chmod +x ` + remotePath.utils + `/run_app.pl`
 
-	if err := d.runCmd(cpy); err != nil {
+	if err := d.runCmd(copyDeploymentScript); err != nil {
 		return err
 	}
-	if err := d.runCmd(cpi); err != nil {
+	if err := d.runCmd(copyRestartScript); err != nil {
 		return err
 	}
 
