@@ -99,15 +99,74 @@ func main() {
 	remotePath.backup = "/home/" + deployConfig.Login.User + "/backup"
 	remotePath.utils = "/home/" + deployConfig.Login.User + "/utils"
 
+	dpCh := receiver(
+		deployConfig.Login.User,
+		deployConfig.Login.Pwd,
+		deployConfig.Servers[*serverEnv].Port,
+		deployConfig.Login.SShPath,
+		*deployAction,
+		deployConfig.Servers[*serverEnv].Ip,
+	)
+
+	errCh := producer(dpCh)
+	for err := range errCh {
+		fmt.Println(err)
+	}
+}
+
+func setupFnc(ch *deploy) error {
+	err := ch.Setup()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func runFnc(ch *deploy) error {
+	err := ch.Run()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func someOtherFunc(ch *deploy, f func(*deploy) error) error {
+	return f(ch)
+}
+
+func producer(in <-chan *deploy) <-chan error {
+	out := make(chan error)
+
 	go func() {
-		for _, ip := range deployConfig.Servers[*serverEnv].Ip {
-			deploy, err := newDeploy(
-				deployConfig.Login.User,
-				deployConfig.Login.Pwd,
+		for ch := range in {
+			switch strings.ToLower(ch.Action()) {
+			case "setup":
+				out <- someOtherFunc(ch, setupFnc)
+			case "deploy":
+				out <- someOtherFunc(ch, runFnc)
+			}
+		}
+		close(out)
+	}()
+	return out
+}
+
+func receiver(User string, Pwd string, Port string, SShPath string, deployAction string, hostname []string) <-chan *deploy {
+	out := make(chan *deploy)
+
+	go func() {
+		for _, ip := range hostname {
+			dp, err := newDeploy(
+				User,
+				Pwd,
 				ip,
-				deployConfig.Servers[*serverEnv].Port,
-				deployConfig.Login.SShPath,
-				*deployAction,
+				Port,
+				SShPath,
+				deployAction,
 			)
 
 			if err != nil {
@@ -115,23 +174,11 @@ func main() {
 				return
 			}
 
-			deployCh <- deploy
+			out <- dp
 		}
-		close(deployCh)
+
+		close(out)
 	}()
 
-	for ch := range deployCh {
-		switch strings.ToLower(ch.Action()) {
-		case "setup":
-			err = ch.Setup()
-		case "deploy":
-			err = ch.Run()
-		default:
-			fmt.Println("Invalid command!")
-		}
-
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-	}
+	return out
 }
