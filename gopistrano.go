@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
-
 	"runtime"
+	"strings"
+	"sync"
 
 	"github.com/BurntSushi/toml"
 )
@@ -99,39 +99,59 @@ func main() {
 	remotePath.backup = "/home/" + deployConfig.Login.User + "/backup"
 	remotePath.utils = "/home/" + deployConfig.Login.User + "/utils"
 
-	go func() {
-		for _, ip := range deployConfig.Servers[*serverEnv].Ip {
-			deploy, err := newDeploy(
-				deployConfig.Login.User,
-				deployConfig.Login.Pwd,
-				ip,
-				deployConfig.Servers[*serverEnv].Port,
-				deployConfig.Login.SShPath,
-				*deployAction,
-			)
+	// spawn worker goroutines
+	// http://stackoverflow.com/questions/18405023/how-would-you-define-a-pool-of-goroutines-to-be-executed-at-once-in-golang
+	var wg sync.WaitGroup
+	for range deployConfig.Servers[*serverEnv].Ip {
+		// Add adds delta, which may be negative, to the WaitGroup counter.
+		// If the counter becomes zero, all goroutines blocked on Wait are released.
+		// If the counter goes negative, Add panics.
+		//
+		// the calls to Add should execute before the statement creating the goroutine or other event to be waited for.
+		// If a WaitGroup is reused to wait for several independent sets of events,
+		// new Add calls must happen after all previous Wait calls have returned.
+		wg.Add(1)
+		go func() {
+			for ch := range deployCh {
+				switch strings.ToLower(ch.Action()) {
+				case "setup":
+					err = ch.Setup()
+				case "deploy":
+					err = ch.Run()
+				default:
+					fmt.Println("Invalid command!")
+				}
 
-			if err != nil {
-				fmt.Println("Failed to start: " + err.Error())
-				return
+				if err != nil {
+					fmt.Println(err.Error())
+				}
 			}
+			// Done decrements the WaitGroup counter.
+			wg.Done()
+		}()
+	}
 
-			deployCh <- deploy
-		}
-		close(deployCh)
-	}()
-
-	for ch := range deployCh {
-		switch strings.ToLower(ch.Action()) {
-		case "setup":
-			err = ch.Setup()
-		case "deploy":
-			err = ch.Run()
-		default:
-			fmt.Println("Invalid command!")
-		}
+	// generate some tasks
+	for _, ip := range deployConfig.Servers[*serverEnv].Ip {
+		deploy, err := newDeploy(
+			deployConfig.Login.User,
+			deployConfig.Login.Pwd,
+			ip,
+			deployConfig.Servers[*serverEnv].Port,
+			deployConfig.Login.SShPath,
+			*deployAction,
+		)
 
 		if err != nil {
-			fmt.Println(err.Error())
+			fmt.Println("Failed to start: " + err.Error())
+			return
 		}
+
+		deployCh <- deploy
 	}
+	close(deployCh)
+
+	// Wait blocks until the WaitGroup counter is zero.
+	// wait for the workers to finish
+	wg.Wait()
 }

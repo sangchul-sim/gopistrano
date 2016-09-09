@@ -9,17 +9,18 @@ my $Package = $ARGV[2];
 my $Repository = $ARGV[3];
 my $KeepRelease = $ARGV[4];
 my $DeploymentDir = $GoProjectDir . "/src/" . $Package;
-my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
-my $CurrentTime = sprintf ("%04d%02d%02d%02d%02d%02d", $year+1900,$mon+1,$mday,$hour,$min,$sec);
+my $StartTimeStamp = time;
+my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($StartTimeStamp);
+my $StartTime = sprintf ("%04d-%02d-%02d %02d:%02d:%02d", $year+1900,$mon+1,$mday,$hour,$min,$sec);
 my $UtilsDir = "/home/" . $User . "/utils";
 my $BackupDir = "/home/" . $User . "/backup";
-my $BackupPreviousReleaseDir = $BackupDir . "/" . $CurrentTime;
+my $BackupPreviousReleaseDir = $BackupDir . "/" . $StartTime;
 my @cmd;
 
-print "deploymentScript current time:" . $CurrentTime . "\n";
-
 open my $fh, ">>", "/tmp/debug.txt";
-print $fh "deploymentScript start time:" . $CurrentTime . "\n";
+my $message = "deploymentScript start time: " . $StartTime . "\n";
+print $message;
+print $fh $message;
 
 # 0. directory check
 if (! -d $DeploymentDir) {
@@ -46,7 +47,6 @@ if (! makeDirIfNotExists($BackupPreviousReleaseDir, 1)) {
     print "mkdir " . $BackupPreviousReleaseDir . " error\n";
     exit;
 }
-
 
 # 1. backup current source
 push @cmd, "cp -RPp " . $DeploymentDir . "/* " . $BackupPreviousReleaseDir;
@@ -88,9 +88,22 @@ sub makeDirIfNotExists() {
     return 0;
 }
 
-my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
-my $CurrentTime = sprintf ("%04d%02d%02d%02d%02d%02d", $year+1900,$mon+1,$mday,$hour,$min,$sec);
-print $fh "deploymentScript end time:" . $CurrentTime . "\n\n";
+my $FinishTimeStamp = time;
+my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($FinishTimeStamp);
+my $FinishTime = sprintf ("%04d-%02d-%02d %02d:%02d:%02d", $year+1900,$mon+1,$mday,$hour,$min,$sec);
+
+my $DurationTimeStamp = $FinishTimeStamp - $StartTimeStamp;
+my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($DurationTimeStamp);
+#my $DurationTime = sprintf ("%04d-%02d-%02d %02d:%02d:%02d", $year+1900,$mon+1,$mday,$hour,$min,$sec);
+
+$message = "deploymentScript finish time: " . $FinishTime . "\n";
+print $message;
+print $fh $message;
+
+$message = "deploymentScript duration time: " . $min . "min " . $sec . "sec\n\n";
+print $message;
+print $fh $message;
+
 close $fh;
 
 exit;
@@ -106,12 +119,14 @@ my $Go = "/usr/local/go/bin/go";
 my $DeploymentDir = $GoProjectDir . "/src/" . $Package;
 my @cmd;
 
-my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
-my $CurrentTime = sprintf ("%04d%02d%02d%02d%02d%02d", $year+1900,$mon+1,$mday,$hour,$min,$sec);
-print "runScript current time:" . $CurrentTime . "\n";
+my $StartTimeStamp = time;
+my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($StartTimeStamp);
+my $StartTime = sprintf ("%04d-%02d-%02d %02d:%02d:%02d", $year+1900,$mon+1,$mday,$hour,$min,$sec);
 
 open my $fh, ">>", "/tmp/debug.txt";
-print $fh "runScript start time:" . $CurrentTime . "\n";
+my $message = "runScript start time: " . $StartTime . "\n";
+print $message;
+print $fh $message;
 
 push @cmd, "/usr/bin/tmux kill-session -t " . $App;
 push @cmd, "/usr/bin/tmux new-session -d -s " . $App . " "
@@ -128,9 +143,22 @@ foreach $idx (0..$#cmd) {
     #
 }
 
-my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
-my $CurrentTime = sprintf ("%04d%02d%02d%02d%02d%02d", $year+1900,$mon+1,$mday,$hour,$min,$sec);
-print $fh "runScript end time:" . $CurrentTime . "\n\n";
+my $FinishTimeStamp = time;
+my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($FinishTimeStamp);
+my $FinishTime = sprintf ("%04d-%02d-%02d %02d:%02d:%02d", $year+1900,$mon+1,$mday,$hour,$min,$sec);
+
+my $DurationTimeStamp = $FinishTimeStamp - $StartTimeStamp;
+my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($DurationTimeStamp);
+#my $DurationTime = sprintf ("%04d-%02d-%02d %02d:%02d:%02d", $year+1900,$mon+1,$mday,$hour,$min,$sec);
+
+$message = "runScript finish time: " . $FinishTime . "\n";
+print $message;
+print $fh $message;
+
+$message = "runScript duration time: " . $min . "min " . $sec . "sec\n\n";
+print $message;
+print $fh $message;
+
 close $fh;
 
 exit;
