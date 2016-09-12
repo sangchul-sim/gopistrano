@@ -258,10 +258,12 @@ func main() {
 						if err == nil {
 							err = dp.Run()
 						}
+					} else {
+						err = errors.New("localFile size is 0")
 					}
 
 				default:
-					fmt.Println("Invalid command!")
+					err = errors.New("Invalid command!")
 				}
 
 				if err != nil {
