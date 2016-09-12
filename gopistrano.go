@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -16,6 +17,11 @@ var (
 	deployConfig *Config
 	remotePath   Path
 	deployCh     chan *deploy
+	configFile   = flag.String("config", "", "/path/to/config")
+	deployAction = flag.String("action", "", "deploy|setup|deploy_file|deploy_list")
+	serverEnv    = flag.String("env", "", "development|staging|production")
+	deployFile   = flag.String("deploy_file", "", "/path/to/file")
+	deployList   = flag.String("deploy_list", "", "/path/to/list")
 )
 
 type Path struct {
@@ -68,22 +74,22 @@ func ReadConfig(configfile string) (*Config, error) {
 
 func init() {
 	deployCh = make(chan *deploy)
+	flag.Parse()
 }
 
 func main() {
 	// 모든 CPU 사용
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	// 현재 설정값 리턴
-	fmt.Println(runtime.GOMAXPROCS(0))
-
-	configFile := flag.String("config", "", "")
-	deployAction := flag.String("action", "", "")
-	serverEnv := flag.String("env", "", "")
-
-	flag.Parse()
+	//fmt.Println(runtime.GOMAXPROCS(0))
 
 	if *configFile == "" || *deployAction == "" || *serverEnv == "" {
-		fmt.Println("Usage:", os.Args[0], "-config=file -action=[deploy|setup] -env=[development|staging|production]")
+		fmt.Println("Usage:", os.Args[0],
+			"-config=file -action=[deploy|setup|deploy_file|deploy_list] "+
+				"-env=[development|staging|production] "+
+				"-deploy_file=deploy_file "+
+				"-deploy_list=deploy_list ",
+		)
 		os.Exit(1)
 	}
 
@@ -93,6 +99,18 @@ func main() {
 	if err != nil {
 		fmt.Println("Failed to read config")
 		os.Exit(1)
+	}
+
+	if *deployAction == "deploy_file" {
+		if *deployFile == "" {
+			fmt.Println("Usage:", os.Args[0],
+				"-config=file -action=[deploy|setup|deploy_file|deploy_list] "+
+					"-env=[development|staging|production] "+
+					"-deploy_file=deploy_file "+
+					"-deploy_list=deploy_list ",
+			)
+			os.Exit(1)
+		}
 	}
 
 	remotePath.deployment = deployConfig.Deploy.GoProjectPath + "/src/" + deployConfig.Deploy.Package
@@ -112,12 +130,66 @@ func main() {
 		// new Add calls must happen after all previous Wait calls have returned.
 		wg.Add(1)
 		go func() {
-			for ch := range deployCh {
-				switch strings.ToLower(ch.Action()) {
+			for dp := range deployCh {
+				switch strings.ToLower(dp.Action()) {
 				case "setup":
-					err = ch.Setup()
+					err = dp.Setup()
 				case "deploy":
-					err = ch.Run()
+					err = dp.Deploy()
+					if err == nil {
+						err = dp.Run()
+					}
+				case "deploy_file":
+					if strings.Index(*deployFile, deployConfig.Deploy.Package) == -1 {
+						err = errors.New("invalid path")
+					} else {
+						// []string
+						path := strings.SplitAfter(*deployFile, deployConfig.Deploy.Package)
+						remoteFile := deployConfig.Deploy.GoProjectPath + "/src/" + deployConfig.Deploy.Package + path[1]
+
+						err = dp.Transafer(*deployFile, remoteFile)
+						if err == nil {
+							err = dp.Run()
+						}
+					}
+				case "deploy_list":
+					localFile, err := os.Open(*deployList)
+					if err != nil {
+						err = fmt.Errorf("localFile read: %v", err)
+					}
+					defer localFile.Close()
+
+					fileInfo, err := localFile.Stat()
+					if err != nil {
+						err = fmt.Errorf("localFile stat: %v", err)
+					}
+					localSize := fileInfo.Size()
+
+					if localSize > 0 {
+						var data = make([]byte, localSize)
+						_, err := localFile.Read(data)
+						if err != nil {
+							err = fmt.Errorf("localFile read: %v", err)
+						}
+
+						splitData := strings.Split(string(data), "\n")
+						for _, localFile := range splitData {
+							if localFile != "" {
+								// []string
+								path := strings.SplitAfter(localFile, deployConfig.Deploy.Package)
+								remoteFile := deployConfig.Deploy.GoProjectPath + "/src/" + deployConfig.Deploy.Package + path[1]
+								err = dp.Transafer(localFile, remoteFile)
+								if err != nil {
+									break
+								}
+							}
+						}
+
+						if err == nil {
+							err = dp.Run()
+						}
+					}
+
 				default:
 					fmt.Println("Invalid command!")
 				}
@@ -125,6 +197,8 @@ func main() {
 				if err != nil {
 					fmt.Println(err.Error())
 				}
+
+				defer dp.cl.Close()
 			}
 			// Done decrements the WaitGroup counter.
 			wg.Done()

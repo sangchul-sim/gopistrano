@@ -5,6 +5,10 @@ import (
 	"io/ioutil"
 	"os"
 
+	"io"
+	"time"
+
+	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -67,8 +71,8 @@ func PublicKeyFile(file string) ssh.AuthMethod {
 	return ssh.PublicKeys(key)
 }
 
-// runs the deployment script && runs the restart script remotely
-func (d *deploy) Run() error {
+// runs the deployment script
+func (d *deploy) Deploy() error {
 	deployCmd := "if [ ! -d " + deployConfig.Deploy.GoProjectPath + " ]; then mkdir " + deployConfig.Deploy.GoProjectPath + "; fi && " +
 		"if [ ! -d " + remotePath.utils + " ]; then exit 1; fi && " +
 		"if [ ! -f " + remotePath.utils + "/deploy.pl ]; then exit 1; fi && " +
@@ -79,22 +83,62 @@ func (d *deploy) Run() error {
 		return err
 	}
 
-	//fmt.Println("deployCmd", deployCmd)
-	fmt.Println("Project Deployed!")
-	fmt.Println("Restarting Tmux at " + remotePath.deployment)
+	fmt.Println("deploy Completed!")
+	return nil
+}
 
+// runs the restart script remotely
+func (d *deploy) Run() error {
 	restartCmd := "if [ ! -d " + remotePath.utils + " ]; then exit 1; fi && " +
 		"if [ ! -f " + remotePath.utils + "/run_app.pl ]; then exit 1; fi && " +
 		remotePath.utils + "/run_app.pl " + deployConfig.Deploy.GoProjectPath + " " +
 		deployConfig.Deploy.Package + " " + deployConfig.Deploy.App
 
-	//fmt.Println("restartCMD", restartCmd)
 	if err := d.runCmd(restartCmd); err != nil {
 		return err
 	}
 
 	fmt.Println("Tmux Restarted!")
 	return nil
+}
+
+func (d *deploy) Transafer(localPath string, remotePath string) (err error) {
+	c, err := sftp.NewClient(d.cl, sftp.MaxPacket(1<<15))
+	if err != nil {
+		return fmt.Errorf("sftp.NewClient: %v", err)
+	}
+	defer c.Close()
+
+	remoteFile, err := c.Create(remotePath)
+	if err != nil {
+		return fmt.Errorf("remoteFile create: %v", err)
+	}
+	defer remoteFile.Close()
+
+	localFile, err := os.Open(localPath)
+	if err != nil {
+		return fmt.Errorf("localFile read: %v", err)
+	}
+	defer localFile.Close()
+
+	//const size int64 = 1e9
+	fileInfo, err := localFile.Stat()
+	if err != nil {
+		return err
+	}
+	localSize := fileInfo.Size()
+
+	timeStamp := time.Now()
+	remoteSize, err := io.Copy(remoteFile, io.LimitReader(localFile, localSize))
+	if err != nil {
+		return fmt.Errorf("copy: %v", err)
+	}
+
+	if remoteSize != localSize {
+		return fmt.Errorf("copy: expected %v bytes, got %d", localSize, remoteSize)
+	}
+	fmt.Printf("wrote %s %v bytes in %s\n", remotePath, localSize, time.Since(timeStamp))
+	return err
 }
 
 // sets up directories for deployment a la capistrano
