@@ -77,21 +77,103 @@ func init() {
 	flag.Parse()
 }
 
+func inputServerEnv() {
+	environmentMap := map[string]bool{
+		"development": true,
+		"staging":     true,
+		"production":  true,
+	}
+
+	for {
+		if environmentMap[*serverEnv] {
+			break
+		} else {
+			var envString string
+			for env, _ := range environmentMap {
+				envString += env + "|"
+			}
+			fmt.Print("\nEnter server environment [" + envString + "]: ")
+			fmt.Scanln(serverEnv)
+		}
+	}
+}
+
+func inputDeployConfig() {
+	for {
+		config, err := os.Open(*configFile)
+		if err != nil {
+			fmt.Print("\nEnter deploy config file: ")
+			fmt.Scanln(configFile)
+		} else {
+			break
+		}
+		defer config.Close()
+	}
+}
+
+func inputDeployAction() {
+	deployActionMap := map[string]bool{
+		"setup":       true,
+		"deploy":      true,
+		"deploy_file": true,
+		"deploy_list": true,
+	}
+
+	for {
+		if deployActionMap[*deployAction] {
+			break
+		} else {
+			var deployActionString string
+			for env, _ := range deployActionMap {
+				deployActionString += env + "|"
+			}
+			fmt.Print("\nEnter deploy action [" + deployActionString + "]: ")
+			fmt.Scanln(deployAction)
+		}
+	}
+}
+
+func inputDeployFile() {
+	if *deployAction == "deploy_file" {
+		for {
+			dpFile, err := os.Open(*deployFile)
+			if err != nil {
+				fmt.Print("\nEnter deploy file: ")
+				fmt.Scanln(deployFile)
+			} else {
+				break
+			}
+			defer dpFile.Close()
+		}
+	}
+}
+
+func inputDeployList() {
+	if *deployAction == "deploy_list" {
+		for {
+			dpFile, err := os.Open(*deployList)
+			if err != nil {
+				fmt.Print("\nEnter deploy list file: ")
+				fmt.Scanln(deployList)
+			} else {
+				break
+			}
+			defer dpFile.Close()
+		}
+	}
+}
+
 func main() {
 	// 모든 CPU 사용
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	// 현재 설정값 리턴
 	//fmt.Println(runtime.GOMAXPROCS(0))
 
-	if *configFile == "" || *deployAction == "" || *serverEnv == "" {
-		fmt.Println("Usage:", os.Args[0],
-			"-config=file -action=[deploy|setup|deploy_file|deploy_list] "+
-				"-env=[development|staging|production] "+
-				"-deploy_file=deploy_file "+
-				"-deploy_list=deploy_list ",
-		)
-		os.Exit(1)
-	}
+	inputServerEnv()
+	inputDeployConfig()
+	inputDeployAction()
+	inputDeployFile()
+	inputDeployList()
 
 	var err error
 	deployConfig, err = ReadConfig(*configFile)
@@ -99,18 +181,6 @@ func main() {
 	if err != nil {
 		fmt.Println("Failed to read config")
 		os.Exit(1)
-	}
-
-	if *deployAction == "deploy_file" {
-		if *deployFile == "" {
-			fmt.Println("Usage:", os.Args[0],
-				"-config=file -action=[deploy|setup|deploy_file|deploy_list] "+
-					"-env=[development|staging|production] "+
-					"-deploy_file=deploy_file "+
-					"-deploy_list=deploy_list ",
-			)
-			os.Exit(1)
-		}
 	}
 
 	remotePath.deployment = deployConfig.Deploy.GoProjectPath + "/src/" + deployConfig.Deploy.Package
