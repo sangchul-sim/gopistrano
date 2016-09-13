@@ -29,7 +29,6 @@ sub makeDirIfNotExists() {
     my ($dir, $recursive) = @_;
 
     if (! -d $dir) {
-#        return mkdir $dir, 0755;
         if ($recursive) {
             system("mkdir -p " . $dir);
         } else {
@@ -52,15 +51,11 @@ my $User = $ARGV[0];
 my $GoProjectDir = $ARGV[1];
 my $Package = $ARGV[2];
 my $Repository = $ARGV[3];
-#my $KeepRelease = $ARGV[4];
 my $DeploymentDir = $GoProjectDir . "/src/" . $Package;
 my $StartTimeStamp = time;
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($StartTimeStamp);
 my $StartTime = sprintf ("%04d-%02d-%02d %02d:%02d:%02d", $year+1900,$mon+1,$mday,$hour,$min,$sec);
 my $UtilsDir = "/home/" . $User . "/utils";
-#my $BackupDir = "/home/" . $User . "/backup";
-#(my $BackupTime = $StartTime) =~ s/[^\d]//g;
-#my $BackupPreviousReleaseDir = $BackupDir . "/" . $BackupTime;
 my @cmd;
 
 open my $fh, ">>", "/tmp/debug.txt";
@@ -68,7 +63,7 @@ my $message = "deploymentScript start time: " . $StartTime . "\n";
 print $message;
 print $fh $message;
 
-# 0. directory check
+# 1. directory check
 if (! -d $DeploymentDir) {
     if (! makeDirIfNotExists($GoProjectDir)) {
         print "mkdir " . $GoProjectDir . " error\n";
@@ -89,37 +84,22 @@ if (! makeDirIfNotExists($UtilsDir)) {
     exit;
 }
 
-#if (! makeDirIfNotExists($BackupPreviousReleaseDir, 1)) {
-#    print "mkdir " . $BackupPreviousReleaseDir . " error\n";
-#    exit;
-#}
-
-# 1. backup current source
-#push @cmd, "cp -RPp " . $DeploymentDir . "/* " . $BackupPreviousReleaseDir;
-
 # 2. git pull
 push @cmd, "cd ". $DeploymentDir. " && "
             . "git checkout master && "
             . "git pull origin master && "
             . "git clean -q -d -x -f";
 
-# 3. delete old backup
-#push @cmd, "ls -1dt " . $BackupDir . "/* | tail -n +" . $KeepRelease . " | xargs rm -rf";
-
-
 foreach $idx (0..$#cmd) {
     #print "===========================================\n" . $cmd[$idx] . "\n";
     my $result = system($cmd[$idx]);
     #print $result . "\n\n";
 }
-#print "backup dir : " . $BackupPreviousReleaseDir . "\n";
-
 
 sub makeDirIfNotExists() {
     my ($dir, $recursive) = @_;
 
     if (! -d $dir) {
-#        return mkdir $dir, 0755;
         if ($recursive) {
             system("mkdir -p " . $dir);
         } else {
@@ -140,7 +120,6 @@ my $FinishTime = sprintf ("%04d-%02d-%02d %02d:%02d:%02d", $year+1900,$mon+1,$md
 
 my $DurationTimeStamp = $FinishTimeStamp - $StartTimeStamp;
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($DurationTimeStamp);
-#my $DurationTime = sprintf ("%04d-%02d-%02d %02d:%02d:%02d", $year+1900,$mon+1,$mday,$hour,$min,$sec);
 
 $message = "deploymentScript finish time: " . $FinishTime . "\n";
 print $message;
@@ -195,7 +174,6 @@ my $FinishTime = sprintf ("%04d-%02d-%02d %02d:%02d:%02d", $year+1900,$mon+1,$md
 
 my $DurationTimeStamp = $FinishTimeStamp - $StartTimeStamp;
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($DurationTimeStamp);
-#my $DurationTime = sprintf ("%04d-%02d-%02d %02d:%02d:%02d", $year+1900,$mon+1,$mday,$hour,$min,$sec);
 
 $message = "runScript finish time: " . $FinishTime . "\n";
 print $message;
