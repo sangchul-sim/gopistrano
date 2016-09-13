@@ -207,7 +207,7 @@ func main() {
 				case "deploy":
 					err = dp.Deploy()
 					if err == nil {
-						err = dp.Run()
+						err = dp.Restart()
 					}
 				case "deploy_file":
 					if strings.Index(*deployFile, deployConfig.Deploy.Package) == -1 {
@@ -219,7 +219,7 @@ func main() {
 
 						err = dp.Transafer(*deployFile, remoteFile)
 						if err == nil {
-							err = dp.Run()
+							err = dp.Restart()
 						}
 					}
 				case "deploy_list":
@@ -256,7 +256,7 @@ func main() {
 						}
 
 						if err == nil {
-							err = dp.Run()
+							err = dp.Restart()
 						}
 					} else {
 						err = errors.New("localFile size is 0")
@@ -279,7 +279,7 @@ func main() {
 
 	// generate some tasks
 	for _, ip := range deployConfig.Servers[*serverEnv].Ip {
-		deploy, err := newDeploy(
+		deploy, err := NewDeploy(
 			deployConfig.Login.User,
 			deployConfig.Login.Pwd,
 			ip,
