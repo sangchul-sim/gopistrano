@@ -1,5 +1,50 @@
 package main
 
+// backup script
+var backupScript string = `#!/usr/bin/perl
+my $User = $ARGV[0];
+my $KeepRelease = $ARGV[1];
+my $StartTimeStamp = time;
+my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($StartTimeStamp);
+my $StartTime = sprintf ("%04d-%02d-%02d %02d:%02d:%02d", $year+1900,$mon+1,$mday,$hour,$min,$sec);
+
+my $BackupDir = "/home/" . $User . "/backup";
+(my $BackupTime = $StartTime) =~ s/[^\d]//g;
+my $BackupPreviousReleaseDir = $BackupDir . "/" . $BackupTime;
+
+if (! makeDirIfNotExists($BackupPreviousReleaseDir, 1)) {
+    print "mkdir " . $BackupPreviousReleaseDir . " error\n";
+    exit;
+}
+
+# 1. backup current source
+push @cmd, "cp -RPp " . $DeploymentDir . "/* " . $BackupPreviousReleaseDir;
+
+# 2. delete old backup
+push @cmd, "ls -1dt " . $BackupDir . "/* | tail -n +" . $KeepRelease . " | xargs rm -rf";
+
+print "backup dir : " . $BackupPreviousReleaseDir . "\n";
+
+sub makeDirIfNotExists() {
+    my ($dir, $recursive) = @_;
+
+    if (! -d $dir) {
+#        return mkdir $dir, 0755;
+        if ($recursive) {
+            system("mkdir -p " . $dir);
+        } else {
+            system("mkdir " . $dir);
+        }
+
+        return 1;
+    } else {
+        return 1;
+    }
+
+    return 0;
+}
+`
+
 // deployment script
 var deploymentScript string = `#!/usr/bin/perl
 
@@ -7,14 +52,15 @@ my $User = $ARGV[0];
 my $GoProjectDir = $ARGV[1];
 my $Package = $ARGV[2];
 my $Repository = $ARGV[3];
-my $KeepRelease = $ARGV[4];
+#my $KeepRelease = $ARGV[4];
 my $DeploymentDir = $GoProjectDir . "/src/" . $Package;
 my $StartTimeStamp = time;
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($StartTimeStamp);
 my $StartTime = sprintf ("%04d-%02d-%02d %02d:%02d:%02d", $year+1900,$mon+1,$mday,$hour,$min,$sec);
 my $UtilsDir = "/home/" . $User . "/utils";
-my $BackupDir = "/home/" . $User . "/backup";
-my $BackupPreviousReleaseDir = $BackupDir . "/" . $StartTime;
+#my $BackupDir = "/home/" . $User . "/backup";
+#(my $BackupTime = $StartTime) =~ s/[^\d]//g;
+#my $BackupPreviousReleaseDir = $BackupDir . "/" . $BackupTime;
 my @cmd;
 
 open my $fh, ">>", "/tmp/debug.txt";
@@ -43,13 +89,13 @@ if (! makeDirIfNotExists($UtilsDir)) {
     exit;
 }
 
-if (! makeDirIfNotExists($BackupPreviousReleaseDir, 1)) {
-    print "mkdir " . $BackupPreviousReleaseDir . " error\n";
-    exit;
-}
+#if (! makeDirIfNotExists($BackupPreviousReleaseDir, 1)) {
+#    print "mkdir " . $BackupPreviousReleaseDir . " error\n";
+#    exit;
+#}
 
 # 1. backup current source
-push @cmd, "cp -RPp " . $DeploymentDir . "/* " . $BackupPreviousReleaseDir;
+#push @cmd, "cp -RPp " . $DeploymentDir . "/* " . $BackupPreviousReleaseDir;
 
 # 2. git pull
 push @cmd, "cd ". $DeploymentDir. " && "
@@ -58,7 +104,7 @@ push @cmd, "cd ". $DeploymentDir. " && "
             . "git clean -q -d -x -f";
 
 # 3. delete old backup
-push @cmd, "ls -1dt " . $BackupDir . "/* | tail -n +" . $KeepRelease . " | xargs rm -rf";
+#push @cmd, "ls -1dt " . $BackupDir . "/* | tail -n +" . $KeepRelease . " | xargs rm -rf";
 
 
 foreach $idx (0..$#cmd) {
@@ -66,7 +112,7 @@ foreach $idx (0..$#cmd) {
     my $result = system($cmd[$idx]);
     #print $result . "\n\n";
 }
-print "backup dir : " . $BackupPreviousReleaseDir . "\n";
+#print "backup dir : " . $BackupPreviousReleaseDir . "\n";
 
 
 sub makeDirIfNotExists() {

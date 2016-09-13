@@ -71,13 +71,27 @@ func PublicKeyFile(file string) ssh.AuthMethod {
 	return ssh.PublicKeys(key)
 }
 
+func (d *deploy) Backup() error {
+	backupCmd := "if [ ! -d " + remotePath.utils + " ]; then exit 1; fi && " +
+		"if [ ! -f " + remotePath.utils + "/backup.pl ]; then exit 1; fi && " +
+		remotePath.utils + "/backup.pl " + deployConfig.Login.User + " " + deployConfig.Deploy.KeepRelease
+
+	if err := d.runCmd(backupCmd); err != nil {
+		return err
+	}
+
+	fmt.Println("backup Completed!")
+	return nil
+}
+
 // runs the deployment script
 func (d *deploy) Deploy() error {
 	deployCmd := "if [ ! -d " + deployConfig.Deploy.GoProjectPath + " ]; then mkdir " + deployConfig.Deploy.GoProjectPath + "; fi && " +
 		"if [ ! -d " + remotePath.utils + " ]; then exit 1; fi && " +
 		"if [ ! -f " + remotePath.utils + "/deploy.pl ]; then exit 1; fi && " +
 		remotePath.utils + "/deploy.pl " + deployConfig.Login.User + " " + deployConfig.Deploy.GoProjectPath + " " +
-		deployConfig.Deploy.Package + " " + deployConfig.Deploy.Repository + " " + deployConfig.Deploy.KeepRelease
+		//deployConfig.Deploy.Package + " " + deployConfig.Deploy.Repository + " " + deployConfig.Deploy.KeepRelease
+		deployConfig.Deploy.Package + " " + deployConfig.Deploy.Repository
 
 	if err := d.runCmd(deployCmd); err != nil {
 		return err
@@ -154,11 +168,17 @@ func (d *deploy) Setup() error {
 	fmt.Println("running scp connection")
 
 	copyDeploymentScript := `echo -n '` + string(deploymentScript) + `' > ` + remotePath.utils + `/deploy.pl ; chmod +x ` + remotePath.utils + `/deploy.pl`
+	copyBackupScript := `echo -n '` + string(backupScript) + `' > ` + remotePath.utils + `/backup.pl ; chmod +x ` + remotePath.utils + `/backup.pl`
 	copyRestartScript := `echo -n '` + string(restartScript) + `' > ` + remotePath.utils + `/run_app.pl ; chmod +x ` + remotePath.utils + `/run_app.pl`
 
 	if err := d.runCmd(copyDeploymentScript); err != nil {
 		return err
 	}
+
+	if err := d.runCmd(copyBackupScript); err != nil {
+		return err
+	}
+
 	if err := d.runCmd(copyRestartScript); err != nil {
 		return err
 	}
