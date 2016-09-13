@@ -205,9 +205,19 @@ func main() {
 				case "setup":
 					err = dp.Setup()
 				case "deploy":
-					err = dp.Deploy()
-					if err == nil {
-						err = dp.Restart()
+					err = dp.Backup()
+					if err != nil {
+						err = fmt.Errorf("backup: %v", err)
+					} else {
+						err = dp.Deploy()
+						if err != nil {
+							err = fmt.Errorf("deploy: %v", err)
+						} else {
+							err = dp.Restart()
+							if err != nil {
+								err = fmt.Errorf("run: %v", err)
+							}
+						}
 					}
 				case "deploy_file":
 					if strings.Index(*deployFile, deployConfig.Deploy.Package) == -1 {
@@ -217,7 +227,16 @@ func main() {
 						path := strings.SplitAfter(*deployFile, deployConfig.Deploy.Package)
 						remoteFile := deployConfig.Deploy.GoProjectPath + "/src/" + deployConfig.Deploy.Package + path[1]
 
-						err = dp.Transafer(*deployFile, remoteFile)
+						err = dp.Backup()
+						if err != nil {
+							err = fmt.Errorf("backup: %v", err)
+						} else {
+							err = dp.Transafer(*deployFile, remoteFile)
+							if err != nil {
+								err = fmt.Errorf("transfer: %v", err)
+							}
+						}
+
 						if err == nil {
 							err = dp.Restart()
 						}
@@ -242,15 +261,20 @@ func main() {
 							err = fmt.Errorf("localFile read: %v", err)
 						}
 
-						splitData := strings.Split(string(data), "\n")
-						for _, localFile := range splitData {
-							if localFile != "" {
-								// []string
-								path := strings.SplitAfter(localFile, deployConfig.Deploy.Package)
-								remoteFile := deployConfig.Deploy.GoProjectPath + "/src/" + deployConfig.Deploy.Package + path[1]
-								err = dp.Transafer(localFile, remoteFile)
-								if err != nil {
-									break
+						err = dp.Backup()
+						if err != nil {
+							err = fmt.Errorf("backup: %v", err)
+						} else {
+							splitData := strings.Split(string(data), "\n")
+							for _, localFile := range splitData {
+								if localFile != "" {
+									// []string
+									path := strings.SplitAfter(localFile, deployConfig.Deploy.Package)
+									remoteFile := deployConfig.Deploy.GoProjectPath + "/src/" + deployConfig.Deploy.Package + path[1]
+									err = dp.Transafer(localFile, remoteFile)
+									if err != nil {
+										break
+									}
 								}
 							}
 						}
