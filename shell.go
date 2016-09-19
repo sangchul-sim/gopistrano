@@ -3,11 +3,14 @@ package main
 // backup script
 var backupScript string = `#!/usr/bin/perl
 my $User = $ARGV[0];
-my $KeepRelease = $ARGV[1];
+my $GoProjectDir = $ARGV[1];
+my $Package = $ARGV[2];
+my $KeepRelease = $ARGV[3];
 my $StartTimeStamp = time;
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($StartTimeStamp);
 my $StartTime = sprintf ("%04d-%02d-%02d %02d:%02d:%02d", $year+1900,$mon+1,$mday,$hour,$min,$sec);
-
+my @cmd;
+my $DeploymentDir = $GoProjectDir . "/src/" . $Package;
 my $BackupDir = "/home/" . $User . "/backup";
 (my $BackupTime = $StartTime) =~ s/[^\d]//g;
 my $BackupPreviousReleaseDir = $BackupDir . "/" . $BackupTime;
@@ -22,6 +25,12 @@ push @cmd, "cp -RPp " . $DeploymentDir . "/* " . $BackupPreviousReleaseDir;
 
 # 2. delete old backup
 push @cmd, "ls -1dt " . $BackupDir . "/* | tail -n +" . $KeepRelease . " | xargs rm -rf";
+
+foreach $idx (0..$#cmd) {
+    #print "===========================================\n" . $cmd[$idx] . "\n";
+    my $result = system($cmd[$idx]);
+    #print $result . "\n\n";
+}
 
 print "backup dir : " . $BackupPreviousReleaseDir . "\n";
 

@@ -74,7 +74,10 @@ func PublicKeyFile(file string) ssh.AuthMethod {
 func (d *deploy) Backup() error {
 	backupCmd := "if [ ! -d " + remotePath.utils + " ]; then exit 1; fi && " +
 		"if [ ! -f " + remotePath.utils + "/backup.pl ]; then exit 1; fi && " +
-		remotePath.utils + "/backup.pl " + deployConfig.Login.User + " " + deployConfig.Deploy.KeepRelease
+		remotePath.utils + "/backup.pl " + deployConfig.Login.User + " " +
+		deployConfig.Deploy.GoProjectPath + " " +
+		deployConfig.Deploy.Package + " " +
+		deployConfig.Deploy.KeepRelease
 
 	if err := d.runCmd(backupCmd); err != nil {
 		return err
@@ -90,7 +93,6 @@ func (d *deploy) Deploy() error {
 		"if [ ! -d " + remotePath.utils + " ]; then exit 1; fi && " +
 		"if [ ! -f " + remotePath.utils + "/deploy.pl ]; then exit 1; fi && " +
 		remotePath.utils + "/deploy.pl " + deployConfig.Login.User + " " + deployConfig.Deploy.GoProjectPath + " " +
-		//deployConfig.Deploy.Package + " " + deployConfig.Deploy.Repository + " " + deployConfig.Deploy.KeepRelease
 		deployConfig.Deploy.Package + " " + deployConfig.Deploy.Repository
 
 	if err := d.runCmd(deployCmd); err != nil {
