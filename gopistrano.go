@@ -213,7 +213,7 @@ func main() {
 						if err != nil {
 							err = fmt.Errorf("deploy: %v", err)
 						} else {
-							err = dp.Run()
+							err = dp.Restart()
 							if err != nil {
 								err = fmt.Errorf("run: %v", err)
 							}
@@ -239,7 +239,7 @@ func main() {
 						}
 
 						if err == nil {
-							err = dp.Run()
+							err = dp.Restart()
 						}
 					}
 				case "deploy_list":
@@ -281,7 +281,7 @@ func main() {
 						}
 
 						if err == nil {
-							err = dp.Run()
+							err = dp.Restart()
 						}
 					} else {
 						err = errors.New("localFile size is 0")
@@ -304,7 +304,7 @@ func main() {
 
 	// generate some tasks
 	for _, ip := range deployConfig.Servers[*serverEnv].Ip {
-		deploy, err := newDeploy(
+		deploy, err := NewDeploy(
 			deployConfig.Login.User,
 			deployConfig.Login.Pwd,
 			ip,

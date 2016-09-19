@@ -18,7 +18,7 @@ type deploy struct {
 }
 
 //returns a new deployment
-func newDeploy(User string, Pwd string, Hostname string, Port string, SshPath string, DeployAction string) (d *deploy, err error) {
+func NewDeploy(User string, Pwd string, Hostname string, Port string, SshPath string, DeployAction string) (d *deploy, err error) {
 	if deployConfig.Login.Pwd != "" {
 		cfg := &ssh.ClientConfig{
 			User: User,
@@ -102,7 +102,7 @@ func (d *deploy) Deploy() error {
 }
 
 // runs the restart script remotely
-func (d *deploy) Run() error {
+func (d *deploy) Restart() error {
 	restartCmd := "if [ ! -d " + remotePath.utils + " ]; then exit 1; fi && " +
 		"if [ ! -f " + remotePath.utils + "/run_app.pl ]; then exit 1; fi && " +
 		remotePath.utils + "/run_app.pl " + deployConfig.Deploy.GoProjectPath + " " +
